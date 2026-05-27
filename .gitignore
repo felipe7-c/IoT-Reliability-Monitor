@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribuição
+build/
+
+
+# Ambientes virtuais
+myenv/
+
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Logs
+*.log
+logs/
+*.out
+
+# IDEs / editores
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Variáveis de ambiente
+.env
+.env.*
+!.env.example
+
+# Modelos / artefatos pesados
+*.pkl
+*.joblib
+*.h5
+*.pt
+
+
+
+# Cache de ferramentas
+.cache/
