@@ -2,6 +2,7 @@ import pandas as pd
 import requests as req
 from src.models.models import IoTData
 import time
+import json
 
 class SimulateIoTUsecase:
     def __init__(self, repository_path):
@@ -38,7 +39,7 @@ class SimulateIoTUsecase:
                 estimated_loss_usd = row['estimated_loss_usd']
             )
 
-            response = req.post("http://localhost:8000/send-iot-data", json = data)
+            response = req.post("http://localhost:8000/send-iot-data", json = data.dict())
             if response.status_code != 200:
                 raise Exception(f"Erro ao enviar dados: {response.status_code} - {response.text}")
     def verifyHealth(self):

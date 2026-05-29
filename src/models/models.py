@@ -1,10 +1,10 @@
 from pydantic import BaseModel
 
 class IoTData(BaseModel):
-    log_id : int
-    farm_id : int
+    log_id : str
+    farm_id : str
     farm_region : str
-    sensor_id : int
+    sensor_id : str
     device_type : str
     failure_category: str
     failure_timestamp : str 
