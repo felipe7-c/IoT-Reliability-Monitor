@@ -1,19 +1,39 @@
 import pandas as pd
 import requests
+import numpy as np
 
 from src.models.models import IoTData
 
 class SimulateIoTUsecase:
 
-    def __init__(self):
+    def __init__(self, db_queue):
 
         self.session = requests.Session()
+        self.db_queue = db_queue
 
     def load_excel(self, path):
 
         df = pd.read_excel(path)
 
+        df = self._preprocess_data(df)
+
         return df.to_dict(orient="records")
+
+
+    def _preprocess_data(self, df):
+
+        df.columns = df.columns.str.strip()
+
+        for col in df.select_dtypes(include=["object"]).columns:
+            df[col] = df[col].astype(str).str.strip()
+
+        df = df.replace({np.nan: None})
+
+        bool_cols = df.select_dtypes(include=["bool"]).columns
+        for col in bool_cols:
+            df[col] = df[col].astype(bool)
+
+        return df
 
     def simulate(self, item):
 
@@ -41,4 +61,7 @@ class SimulateIoTUsecase:
             json=data.model_dump()
         )
 
-        print(f"{response.status_code}\n")
+        if response.status_code != 200:
+            return
+        
+        self.db_queue.put(data.model_dump())

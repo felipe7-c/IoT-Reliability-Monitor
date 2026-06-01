@@ -1,10 +1,19 @@
 from src.usecases.simulateIoTUsecase import SimulateIoTUsecase
-
-import pandas as pd
+from src.infra.databaseManage import databaseManage
+from src.infra.postgreSqlConn import PostgreSqlConn
 import threading
 import queue
 import uvicorn
 import time
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+admin = os.getenv("DB_ADMIN")
+pssw = os.getenv("DB_PASSWORD")
+host = os.getenv("DB_HOST")
+db = os.getenv("DB_NAME")
+port = os.getenv("DB_PORT")
 
 def start_api():
 
@@ -28,9 +37,37 @@ def worker(queue, simulate_usecase):
             queue.task_done()
 
         except Exception as e:
-            print(e)
+            raise Exception(f"Error no worker de simulação: {e}")
+
+def db_worker(queue, db_manage, batch_size):
+    
+    batch = []
+
+    while True:
+
+        if not queue.empty():
+
+            item = queue.get()
+
+            if len(batch) >= batch_size:
+                db_manage.insert_data("iot_data_table", batch)
+                batch.clear()
+
+            batch.append(item) 
+            queue.task_done()
 
 def main():
+
+    #Conexão com o banco de dados
+    database = PostgreSqlConn(
+        user = admin,
+        password = pssw, 
+        host = host,
+        port = port, 
+        database = db
+    )
+
+    db_manage = databaseManage(database.get_engine())
 
     #Worker de API em paralelo
     path = "assets/50_rows_simulate.xlsx"
@@ -44,7 +81,21 @@ def main():
 
     time.sleep(3)
 
-    simulate_usecase = SimulateIoTUsecase()
+    #Worker de banco de dados em paralelo
+
+    queue_db = queue.Queue(maxsize = 20)
+
+    db_thread = threading.Thread(
+        target = db_worker, 
+        args = (queue_db, db_manage, 20),
+        daemon = True
+    )
+
+    db_thread.start()
+
+    #Worker de simulação em paralelo
+
+    simulate_usecase = SimulateIoTUsecase(queue_db)
 
     data = simulate_usecase.load_excel(path)
 
