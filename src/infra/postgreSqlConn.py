@@ -10,7 +10,7 @@ class PostgreSqlConn:
         if PostgreSqlConn._engine is None:
 
             url = URL.create(
-                drivername="postgresql",
+                drivername="postgresql+psycopg",
                 username=user,
                 password=password,
                 host=host,
@@ -22,8 +22,7 @@ class PostgreSqlConn:
                 url,
                 pool_size=10,
                 max_overflow=20,
-                pool_pre_ping=True,
-                connect_args={"client_encoding": "utf8"}
+                pool_pre_ping=True
             )
 
     def get_engine(self):

@@ -1,73 +1,100 @@
 from sqlalchemy import text
+from sqlalchemy import create_engine
+from sqlalchemy.engine import URL
 import logging
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class databaseManage:
-    def __init__(self, engine):
+class DatabaseManage:
+    def __init__(self, engine, user, password, host, port):
         self.engine = engine
 
-    def _sanitize_value(self, v: Any) -> Any:
+        # credenciais só pra bootstrap interno (não expõe engine extra)
+        self.user = user
+        self.password = password
+        self.host = host
+        self.port = port
 
+    def _sanitize_value(self, v: Any) -> Any:
         if isinstance(v, (bytes, bytearray)):
             b = bytes(v)
             try:
-                return b.decode('utf-8')
+                return b.decode("utf-8")
             except UnicodeDecodeError:
                 try:
-                    return b.decode('latin-1')
+                    return b.decode("latin-1")
                 except Exception:
-                    return b.decode('utf-8', errors='replace')
+                    return b.decode("utf-8", errors="replace")
         return v
 
-    def insert_data(self, table_name, data : list[dict]):
+    def _ensure_database_exists(self, database_name: str):
+
+        admin_url = URL.create(
+            drivername="postgresql+psycopg",
+            username=self.user,
+            password=self.password,
+            host=self.host,
+            port=int(self.port),
+            database="postgres"  # obrigatório
+        )
+
+        admin_engine = create_engine(admin_url)
+
+        check_sql = text("SELECT 1 FROM pg_database WHERE datname = :db")
+
+        with admin_engine.connect() as conn:
+            exists = conn.execute(check_sql, {"db": database_name}).scalar()
+
+        if not exists:
+            with admin_engine.execution_options(
+                isolation_level="AUTOCOMMIT"
+            ).connect() as conn:
+                conn.execute(text(f"CREATE DATABASE {database_name}"))
+
+        admin_engine.dispose()
+
+    def insert_data(self, table_name: str, data: list[dict], database_name: str = None):
+
+        if database_name:
+            self._ensure_database_exists(database_name)
+
         if not data:
             return
 
+        columns = list(data[0].keys())
+        cols = ", ".join(columns)
+        vals = ", ".join(f":{c}" for c in columns)
+
+        query = text(f"""
+            INSERT INTO {table_name}
+            ({cols})
+            VALUES ({vals})
+        """)
+
+        sanitized_rows = []
+
+        for i, row in enumerate(data):
+            new_row = {}
+
+            for k, v in row.items():
+                new_row[k] = self._sanitize_value(v)
+
+            sanitized_rows.append(new_row)
+
         try:
-            columns = list(data[0].keys())
-            cols = ", ".join(columns)
-            vals = ", ".join(f":{c}" for c in columns)
+            with self.engine.begin() as conn:
+                conn.execute(query, sanitized_rows)
 
-            query = text(f"""
-                INSERT INTO {table_name}
-                ({cols})
-                VALUES ({vals})
-            """)
+        except Exception:
+            print("Erro no bulk insert. Tentando linha a linha.")
 
-            sanitized_rows: list[dict] = []
-            for i, row in enumerate(data):
-                new_row = {}
-                for k, v in row.items():
+            with self.engine.begin() as conn:
+                for idx, single in enumerate(sanitized_rows):
                     try:
-                        new_row[k] = self._sanitize_value(v)
-                    except Exception as e:
-                        logger.exception("Failed to sanitize row %s column %s", i, k)
-                        raise
-                sanitized_rows.append(new_row)
-
-            try:
-                with self.engine.begin() as conn:
-                    conn.execute(query, sanitized_rows)
-            except UnicodeDecodeError as ude:
-                logger.exception("Bulk insert raised UnicodeDecodeError, falling back to per-row inserts to identify bad row")
-                with self.engine.begin() as conn:
-                    for idx, single in enumerate(sanitized_rows):
-                        try:
-                            conn.execute(query, single)
-                        except UnicodeDecodeError:
-                            logger.exception("UnicodeDecodeError inserting row %s: %r", idx, single)
-                            raise Exception(f"Error inserting data (UnicodeDecodeError) at row {idx}: {single}") from ude
-                        except Exception as e:
-                            logger.exception("Error inserting row %s: %s", idx, e)
-
-                raise
-
-        except UnicodeDecodeError as ude:
-            logger.exception("Unicode decode error while inserting into %s", table_name)
-            raise Exception(f"Error inserting data (UnicodeDecodeError): {ude}")
-        except Exception as e:
-            logger.exception("Error inserting data into %s", table_name)
-            raise Exception(f"Error inserting data: {e}")
+                        conn.execute(query, single)
+                    except Exception as row_error:
+                        print(f"Erro na linha {idx}")
+                        print(single)
+                        raise Exception(f"Erro na linha {idx}: {row_error}") from row_error

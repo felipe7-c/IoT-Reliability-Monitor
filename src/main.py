@@ -1,8 +1,9 @@
 from src.usecases.simulateIoTUsecase import SimulateIoTUsecase
-from src.infra.databaseManage import databaseManage
+from src.infra.databaseManage import DatabaseManage
 from src.infra.postgreSqlConn import PostgreSqlConn
 import threading
 import queue
+from queue import Empty
 import uvicorn
 import time
 from dotenv import load_dotenv
@@ -37,24 +38,27 @@ def worker(queue, simulate_usecase):
             queue.task_done()
 
         except Exception as e:
-            raise Exception(f"Error no worker de simulação: {e}")
+            print(f"Error no worker de simulação: {e}")
 
 def db_worker(queue, db_manage, batch_size):
-    
+
     batch = []
 
     while True:
 
-        if not queue.empty():
-
-            item = queue.get()
+        try:
+            item = queue.get(timeout=1)
+            batch.append(item)
+            queue.task_done()
 
             if len(batch) >= batch_size:
-                db_manage.insert_data("iot_data_table", batch)
+                db_manage.insert_data("iot_data_table", batch.copy())
                 batch.clear()
 
-            batch.append(item) 
-            queue.task_done()
+        except Empty:
+            if batch:
+                db_manage.insert_data("iot_data_table", batch.copy())
+                batch.clear()
 
 def main():
 
@@ -67,7 +71,7 @@ def main():
         database = db
     )
 
-    db_manage = databaseManage(database.get_engine())
+    db_manage = DatabaseManage(database.get_engine(), "postgres", pssw, host, port)
 
     #Worker de API em paralelo
     path = "assets/50_rows_simulate.xlsx"
