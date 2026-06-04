@@ -8,14 +8,25 @@ logger = logging.getLogger(__name__)
 
 
 class DatabaseManage:
-    def __init__(self, engine, user, password, host, port):
-        self.engine = engine
-
+    def __init__(self, user, password, host, port, database_name):
         # credenciais só pra bootstrap interno (não expõe engine extra)
         self.user = user
         self.password = password
         self.host = host
         self.port = port
+
+        self._ensure_database_exists(database_name)
+
+        db_url = URL.create(
+            drivername="postgresql+psycopg",
+            username=user,
+            password=password,
+            host=host,
+            port=int(port),
+            database=database_name
+        )
+
+        self.engine = create_engine(db_url)
 
     def _sanitize_value(self, v: Any) -> Any:
         if isinstance(v, (bytes, bytearray)):
@@ -37,7 +48,7 @@ class DatabaseManage:
             password=self.password,
             host=self.host,
             port=int(self.port),
-            database="postgres"  # obrigatório
+            database='postgres'  
         )
 
         admin_engine = create_engine(admin_url)
@@ -55,10 +66,38 @@ class DatabaseManage:
 
         admin_engine.dispose()
 
-    def insert_data(self, table_name: str, data: list[dict], database_name: str = None):
+    def create_table(self, table_name: str):
 
-        if database_name:
-            self._ensure_database_exists(database_name)
+        sql_create_table = text(f"""
+            CREATE TABLE IF NOT EXISTS {table_name} (
+                log_id VARCHAR(20) PRIMARY KEY,
+                farm_id VARCHAR(20) NOT NULL,
+                farm_region VARCHAR(100),
+                sensor_id VARCHAR(20) NOT NULL,
+                device_type VARCHAR(50),
+                failure_category VARCHAR(100),
+                failure_timestamp TIMESTAMP,
+                downtime_hours FLOAT,
+                resolution_action VARCHAR(150),
+                temperature_celsius FLOAT,
+                humidity_percent FLOAT,
+                weather_condition VARCHAR(50),
+                soil_moisture_percent FLOAT,
+                maintenance_team VARCHAR(100),
+                resolved BOOLEAN,
+                estimated_loss_usd DECIMAL(10, 2)
+            );
+        """)
+
+        with self.engine.begin() as conn:
+            try:
+                conn.execute(sql_create_table)
+            except Exception as e:
+                return f"Erro ao criar tabela: {e}"
+
+        return
+
+    def insert_data(self, table_name: str, data: list[dict]):
 
         if not data:
             return

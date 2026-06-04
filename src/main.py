@@ -15,6 +15,7 @@ pssw = os.getenv("DB_PASSWORD")
 host = os.getenv("DB_HOST")
 db = os.getenv("DB_NAME")
 port = os.getenv("DB_PORT")
+tb_name = os.getenv("TB_NAME")
 
 def start_api():
 
@@ -52,26 +53,22 @@ def db_worker(queue, db_manage, batch_size):
             queue.task_done()
 
             if len(batch) >= batch_size:
-                db_manage.insert_data("iot_data_table", batch.copy())
+                db_manage.insert_data(tb_name, batch.copy())
                 batch.clear()
 
         except Empty:
             if batch:
-                db_manage.insert_data("iot_data_table", batch.copy())
+                db_manage.insert_data(tb_name, batch.copy())
                 batch.clear()
 
 def main():
 
     #Conexão com o banco de dados
-    database = PostgreSqlConn(
-        user = admin,
-        password = pssw, 
-        host = host,
-        port = port, 
-        database = db
-    )
+    #Cria conexão com o banco de dado se verifica se o database existe
 
-    db_manage = DatabaseManage(database.get_engine(), "postgres", pssw, host, port)
+    db_manage = DatabaseManage("postgres", pssw, host, port,db)
+
+    db_manage.create_table(tb_name)
 
     #Worker de API em paralelo
     path = "assets/50_rows_simulate.xlsx"
