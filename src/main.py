@@ -71,7 +71,7 @@ def main():
     db_manage.create_table(tb_name)
 
     #Worker de API em paralelo
-    path = "assets/50_rows_simulate.xlsx"
+    path = "assets/ai4i2020.csv"
 
     api_thread = threading.Thread(
         target=start_api,

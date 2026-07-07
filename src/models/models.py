@@ -1,19 +1,17 @@
 from pydantic import BaseModel
 
 class IoTData(BaseModel):
-    log_id : str
-    farm_id : str
-    farm_region : str
-    sensor_id : str
-    device_type : str
-    failure_category: str
-    failure_timestamp : str 
-    downtime_hours : float
-    resolution_action : str
-    temperature_celsius : float
-    humidity_percent : float
-    weather_condition : str
-    soil_moisture_percent : float
-    maintenance_team : str
-    resolved : bool
-    estimated_loss_usd : float
+    udi : int
+    product_ID : str
+    type : str
+    air_temperature : float
+    process_temperature : float
+    rotational_speed : float
+    torque : float
+    tool_wear : int
+    machine_failure : bool
+    TWF : bool
+    HDF : bool
+    PWF : bool
+    OSF : bool
+    RNF : bool

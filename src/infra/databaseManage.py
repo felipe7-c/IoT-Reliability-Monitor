@@ -70,22 +70,20 @@ class DatabaseManage:
 
         sql_create_table = text(f"""
             CREATE TABLE IF NOT EXISTS {table_name} (
-                log_id VARCHAR(20) PRIMARY KEY,
-                farm_id VARCHAR(20) NOT NULL,
-                farm_region VARCHAR(100),
-                sensor_id VARCHAR(20) NOT NULL,
-                device_type VARCHAR(50),
-                failure_category VARCHAR(100),
-                failure_timestamp TIMESTAMP,
-                downtime_hours FLOAT,
-                resolution_action VARCHAR(150),
-                temperature_celsius FLOAT,
-                humidity_percent FLOAT,
-                weather_condition VARCHAR(50),
-                soil_moisture_percent FLOAT,
-                maintenance_team VARCHAR(100),
-                resolved BOOLEAN,
-                estimated_loss_usd DECIMAL(10, 2)
+            udi VARCHAR(20) PRIMARY KEY,
+            product_ID VARCHAR(20) NOT NULL,
+            type VARCHAR(100),
+            air_temperature VARCHAR(20) NOT NULL,
+            process_temperature VARCHAR(20) NOT NULL,
+            rotational_speed VARCHAR(20) NOT NULL,
+            torque VARCHAR(20) NOT NULL,
+            tool_wear VARCHAR(20) NOT NULL,
+            machine_failure BOOLEAN,
+            TWF BOOLEAN,
+            HDF BOOLEAN,
+            PWF BOOLEAN,
+            OSF BOOLEAN,
+            RNF BOOLEAN
             );
         """)
 

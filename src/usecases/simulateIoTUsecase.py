@@ -13,7 +13,10 @@ class SimulateIoTUsecase:
 
     def load_excel(self, path):
 
-        df = pd.read_excel(path)
+        if ".csv" in path:
+            df = pd.read_csv(path)
+        else:
+            df = pd.read_excel(path)
 
         df = self._preprocess_data(df)
 
@@ -38,22 +41,20 @@ class SimulateIoTUsecase:
     def simulate(self, item):
 
         data = IoTData(
-            log_id=item['log_id'],
-            farm_id=item['farm_id'],
-            farm_region=item['farm_region'],
-            sensor_id=item['sensor_id'],
-            device_type=item['device_type'],
-            failure_category=item['failure_category'],
-            failure_timestamp=item['failure_timestamp'],
-            downtime_hours=item['downtime_hours'],
-            resolution_action=item['resolution_action'],
-            temperature_celsius=item['temperature_celsius'],
-            humidity_percent=item['humidity_percent'],
-            weather_condition=item['weather_condition'],
-            soil_moisture_percent=item['soil_moisture_percent'],
-            maintenance_team=item['maintenance_team'],
-            resolved=item['resolved'],
-            estimated_loss_usd=item['estimated_loss_usd']
+            udi=item['UDI'],
+            product_ID=item['Product ID'],
+            type=item['Type'],
+            air_temperature=item['Air temperature [K]'],
+            process_temperature=item['Process temperature [K]'],
+            rotational_speed=item['Rotational speed [rpm]'],
+            torque=item['Torque [Nm]'],
+            tool_wear=item['Tool wear [min]'],
+            machine_failure=item['Machine failure'],
+            TWF=item['TWF'],
+            HDF=item['HDF'],
+            PWF=item['PWF'],
+            OSF=item['OSF'],
+            RNF=item['RNF'],
         )
 
         response = self.session.post(
