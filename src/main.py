@@ -1,6 +1,7 @@
 from src.usecases.simulateIoTUsecase import SimulateIoTUsecase
 from src.infra.databaseManage import DatabaseManage
 from src.infra.postgreSqlConn import PostgreSqlConn
+from src.usecases.inferMachineFailureUsecase import inferMachineFailureUsecase
 import threading
 import queue
 from queue import Empty
@@ -16,6 +17,7 @@ host = os.getenv("DB_HOST")
 db = os.getenv("DB_NAME")
 port = os.getenv("DB_PORT")
 tb_name = os.getenv("TB_NAME")
+model_path = os.getenv("MODEL_PATH")
 
 def start_api():
 
@@ -62,6 +64,10 @@ def db_worker(queue, db_manage, batch_size):
                 batch.clear()
 
 def main():
+
+    #Modelo de previsão de falha de Máquinas
+
+    model_infer = inferMachineFailureUsecase()
 
     #Conexão com o banco de dados
     #Cria conexão com o banco de dado se verifica se o database existe
