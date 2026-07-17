@@ -8,6 +8,15 @@ logger = logging.getLogger(__name__)
 
 
 class DatabaseManage:
+
+    _instance = None
+
+    @classmethod
+    def get_instance(cls, user, password, host, port, database_name):
+        if cls._instance is None:
+            cls._instance = cls(user, password, host, port, database_name)
+        return cls._instance
+
     def __init__(self, user, password, host, port, database_name):
         # credenciais só pra bootstrap interno (não expõe engine extra)
         self.user = user
